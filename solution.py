@@ -32,53 +32,30 @@ def checksum(string):
     answer = answer >> 8 | (answer << 8 & 0xff00)
     return answer
 
-
-
 def receiveOnePing(mySocket, ID, timeout, destAddr):
     timeLeft = timeout
-
     while 1:
         startedSelect = time.time()
         whatReady = select.select([mySocket], [], [], timeLeft)
         howLongInSelect = (time.time() - startedSelect)
-        if whatReady[0] == []:  # Timeout
-            return "Request timed out."
-
+        if whatReady[0] == []: # Timeout
+            bytesInDouble=struct.calcsize("d")
         timeReceived = time.time()
         recPacket, addr = mySocket.recvfrom(1024)
+        global packetsreceived
+        packetsreceived=packetsreceived+1
+        icmpHeader = recPacket[20:28]
+        ttl = struct.unpack("d", recPacket[0:8])[0]
 
-        # Fill in start
+        
+        type,code,checksum,packetID,sequence=struct.unpack("bbHHh", icmpHeader)
+        
+        if (packetID==ID):
+            bytesInDouble=struct.calcsize("d")
+            timeSent=struct.unpack("d",recPacket[28:28 + bytesInDouble])[0]
+            print ("Reply from " + str(destAddr) + ":" + " bytes=" + str(bytesInDouble) + " " )
+            return timeReceived - timeSent
 
-        # Fetch the ICMP header from the IP packet
-        icmp_header = recPacket[20:28]
-        type, code, checksum, packetID, sequence = struct.unpack(
-            "bbHHh", recPacket[20:28])
-        if packetID == ID:
-            return timeReceived - startedSelect
-#         if type != 0:
-#             return 'expected type 0, got %d' % type
-#         if code != 0:
-#             return 'expected code 0, got %d' % code
-#         if packetID != id:
-#             return 'expected id %d, got %d' % (id, packetID)
-#         send_time = struct.unpack("d", recPacket[28:36])[0]
-#
-#         rtt = (timeReceived - send_time) * 1000
-#         rtt_count += 1
-#         rtt_sum += rtt
-#         rtt_stdev = (rtt_sum / rtt_count) - rtt
-#         rtt_min = min(rtt_min, rtt)
-#         rtt_max = max(rtt_max, rtt)
-#
-#         ip_header = struct.unpack('!BBHHHBBH4s4s', recPacket[:20])
-#         ttl = ip_header[5]
-#         saddr = socket.inet_ntoa(ip_header[8])
-#         length = len(recPacket) - 20
-#
-#         return '{} bytes from {}: icmp_seq={} ttl={} time={:.2f} ms'.format(
-#             length, saddr, sequence, ttl, rtt)
-
-        # Fill in end
         timeLeft = timeLeft - howLongInSelect
         if timeLeft <= 0:
             return "Request timed out."
