@@ -42,7 +42,7 @@ def receiveOnePing(mySocket, ID, timeout, destAddr):
             bytesInDouble=struct.calcsize("d")
         timeReceived = time.time()
         recPacket, addr = mySocket.recvfrom(1024)
-        global packetsreceived
+        packetsreceived = 0
         packetsreceived=packetsreceived+1
         icmpHeader = recPacket[20:28]
         ttl = struct.unpack("d", recPacket[0:8])[0]
